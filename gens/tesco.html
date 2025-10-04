@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tesco Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: #1c1c1c;
+      padding: 2rem;
+      border-radius: 12px;
+      width: 420px;
+      text-align: center;
+      box-shadow: 0 0 15px rgba(33,150,243,0.5);
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 10px;
+      color: #2196f3;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      text-align: left;
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: none;
+      border-radius: 8px;
+      background: #222;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+    }
+    input:focus {
+      border: 2px solid #2196f3;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 16px;
+      font-size: 15px;
+      border-radius: 8px;
+      border: none;
+      background: #2196f3;
+      font-weight: bold;
+      color: #111;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #64b5f6;
+      transform: translateY(-2px);
+    }
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px dashed #555;
+      border-radius: 10px;
+      background: #222;
+      display: none;
+    }
+    svg {
+      background: #fff;
+      padding: 8px;
+      border-radius: 6px;
+      margin-top: 12px;
+    }
+    .error { color: #f44336; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Tesco Generator</h1>
+
+    <label for="barcode">Original Barcode (13 digits)</label>
+    <input id="barcode" type="text" maxlength="13" placeholder="e.g. 5000221503354">
+
+    <label for="price">Price (£, numbers only)</label>
+    <input id="price" type="number" placeholder="e.g. 7">
+
+    <button id="generate">Generate</button>
+
+    <div id="result">
+      <div id="payload"></div>
+      <svg id="barcodeSvg"></svg>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script>
+    function padPrice(pounds) {
+      return String(pounds).padStart(5, "0");
+    }
+
+    function calculateChecksum(code) {
+      let even = 0, odd = 0;
+      for (let i = 0; i < code.length; i++) {
+        if (i % 2 === 0) {
+          even += parseInt(code[i]);
+        } else {
+          odd += parseInt(code[i]);
+        }
+      }
+      even *= 3;
+      const total = even + odd;
+      const mod = total % 10;
+      return (10 - mod) % 10;
+    }
+
+    document.getElementById("generate").addEventListener("click", () => {
+      const barcode = document.getElementById("barcode").value.trim();
+      const priceVal = document.getElementById("price").value.trim();
+
+      if (barcode.length !== 13 || !/^\d+$/.test(barcode)) {
+        alert("Barcode must be exactly 13 digits");
+        return;
+      }
+      if (!/^\d+$/.test(priceVal)) {
+        alert("Price must be a number (pounds)");
+        return;
+      }
+
+      const randomChar = Math.floor(Math.random() * 10); // same as PHP rand(0,9)
+      const paddedPrice = padPrice(priceVal);
+      const base = "971" + barcode + randomChar + paddedPrice + "0";
+      const checksum = calculateChecksum(base);
+      const finalPayload = base + checksum;
+
+      document.getElementById("payload").innerHTML = "<strong>Payload:</strong> <code>" + finalPayload + "</code>";
+
+      JsBarcode("#barcodeSvg", finalPayload, {
+        format: "CODE128",
+        displayValue: true,
+        fontSize: 16,
+        height: 80
+      });
+
+      document.getElementById("result").style.display = "block";
+    });
+  </script>
+</body>
+</html>

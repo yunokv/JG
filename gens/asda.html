@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ASDA Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .card {
+      background: #1c1c1c;
+      padding: 2rem;
+      border-radius: 12px;
+      width: 420px;
+      text-align: center;
+      box-shadow: 0 0 15px rgba(120,190,32,0.6);
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 10px;
+      color: #78BE20;
+    }
+
+    p {
+      margin-bottom: 20px;
+      color: #aaa;
+      font-size: 0.9rem;
+    }
+
+    input[type=text] {
+      width: 90%;
+      padding: 10px;
+      margin: 8px 0;
+      font-size: 15px;
+      border: none;
+      border-radius: 8px;
+      outline: none;
+      background: #222;
+      color: #fff;
+    }
+
+    input[type=text]:focus {
+      border: 2px solid #78BE20;
+    }
+
+    button {
+      margin: 10px 6px;
+      padding: 10px 16px;
+      font-size: 15px;
+      border-radius: 8px;
+      border: none;
+      background: #78BE20;
+      font-weight: bold;
+      color: #111;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      background: #9fe855;
+      transform: translateY(-2px);
+    }
+
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px dashed #555;
+      border-radius: 10px;
+      background: #222;
+      color: #fff;
+      display: none;
+    }
+
+    svg {
+      background: #fff;
+      padding: 8px;
+      border-radius: 6px;
+      margin-top: 12px;
+    }
+
+    .error {
+      color: #f44336;
+      font-weight: bold;
+    }
+
+    #extraOut {
+      margin-top: 8px;
+      font-size: 0.9rem;
+      color: #bbb;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>ASDA Generator</h1>
+
+    <label for="ean">Barcode number (8, 12 or 13 digits)</label>
+    <input id="ean" type="text" inputmode="numeric" minlength="8" maxlength="13" placeholder="e.g. 0123456789012">
+
+    <label for="serial">Serial / suffix (optional)</label>
+    <input id="serial" type="text" inputmode="numeric" minlength="1" maxlength="20" placeholder="default 000001196">
+
+    <label for="extraText">Product Name (optional)</label>
+    <input id="extraText" type="text" placeholder="e.g. Product name or note">
+
+    <div>
+      <button id="generate">Generate</button>
+      <button id="copyPayload">Copy</button>
+    </div>
+
+    <div id="result">
+      <div id="textOut"></div>
+      <svg id="barcode"></svg>
+      <div id="extraOut"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script>
+    function luhnCheckDigit(numberString){
+      const digits = numberString.replace(/\D/g,'').split('').reverse().map(d=>parseInt(d,10));
+      let sum = 0;
+      for(let i=0;i<digits.length;i++){
+        let d = digits[i];
+        if(i % 2 === 0){
+          d = d * 2;
+          if(d > 9) d -= 9;
+        }
+        sum += d;
+      }
+      const mod = sum % 10;
+      return (mod === 0) ? "0" : String(10 - mod);
+    }
+
+    function isDigits(s){ return /^\d+$/.test(s); }
+
+    const eanInput = document.getElementById('ean');
+    const serialInput = document.getElementById('serial');
+    const extraInput = document.getElementById('extraText');
+    const generateBtn = document.getElementById('generate');
+    const copyBtn = document.getElementById('copyPayload');
+    const out = document.getElementById('textOut');
+    const result = document.getElementById('result');
+    const extraOut = document.getElementById('extraOut');
+
+    generateBtn.addEventListener('click', ()=>{
+      const ean = eanInput.value.trim();
+      let serial = serialInput.value.trim();
+      const extra = extraInput.value.trim();
+
+      if(!(ean.length === 8 || ean.length === 12 || ean.length === 13) || !isDigits(ean)){
+        out.innerHTML = '<div class="error">Please enter a valid barcode (8, 12, or 13 digits).</div>';
+        result.style.display = "block";
+        return;
+      }
+
+      if(serial !== ""){
+        if(!isDigits(serial)){
+          out.innerHTML = '<div class="error">Serial must be numeric only.</div>';
+          result.style.display = "block";
+          return;
+        }
+        serial = serial.padStart(9, '0');
+      } else {
+        serial = '000001196';
+      }
+
+      const prefix = '510';
+      const base = prefix + ean + serial;
+      const checkDigit = luhnCheckDigit(base);
+      const finalPayload = base + checkDigit;
+
+      out.innerHTML = '<strong>Payload:</strong> <code>' + finalPayload + '</code>';
+
+      try {
+        JsBarcode('#barcode', finalPayload, {
+          format: 'CODE128',
+          displayValue: true,
+          fontSize: 16,
+          height: 80,
+          lineColor: "#000",
+          background: "#fff"
+        });
+      } catch(e){
+        out.innerText = 'Failed to render barcode: ' + e.message;
+      }
+
+      extraOut.textContent = extra !== "" ? extra : "";
+      result.style.display = "block";
+    });
+
+    copyBtn.addEventListener('click', ()=>{
+      const text = out.textContent.replace("Payload:", "").trim();
+      navigator.clipboard.writeText(text).then(()=>{
+        alert("Copied: " + text);
+      });
+    });
+  </script>
+</body>
+</html>

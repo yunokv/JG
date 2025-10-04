@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>M&S Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .card {
+      background: #1c1c1c;
+      padding: 2rem;
+      border-radius: 12px;
+      width: 420px;
+      text-align: center;
+      box-shadow: 0 0 15px rgba(0,150,136,0.6);
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 10px;
+      color: #00bfa5;
+    }
+
+    p {
+      margin-bottom: 20px;
+      color: #aaa;
+      font-size: 0.9rem;
+    }
+
+    input[type=text] {
+      width: 90%;
+      padding: 10px;
+      margin: 8px 0;
+      font-size: 15px;
+      border: none;
+      border-radius: 8px;
+      outline: none;
+      background: #222;
+      color: #fff;
+    }
+
+    input[type=text]:focus {
+      border: 2px solid #00bfa5;
+    }
+
+    button {
+      margin: 10px 6px;
+      padding: 10px 16px;
+      font-size: 15px;
+      border-radius: 8px;
+      border: none;
+      background: #00bfa5;
+      font-weight: bold;
+      color: #111;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      background: #26d7bd;
+      transform: translateY(-2px);
+    }
+
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px dashed #555;
+      border-radius: 10px;
+      background: #222;
+      color: #fff;
+      display: none;
+    }
+
+    svg {
+      background: #fff;
+      padding: 8px;
+      border-radius: 6px;
+      margin-top: 12px;
+    }
+
+    .error {
+      color: #f44336;
+      font-weight: bold;
+    }
+
+    #extraOut {
+      margin-top: 8px;
+      font-size: 0.9rem;
+      color: #bbb;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>M&S Generator</h1>
+
+    <label for="original">Original Barcode (13 digits)</label>
+    <input id="original" type="text" inputmode="numeric" minlength="13" maxlength="13" placeholder="e.g. 0123456789012">
+
+    <label for="price">Price (5 digits, e.g. £1 = 00100)</label>
+    <input id="price" type="text" inputmode="numeric" minlength="5" maxlength="5" placeholder="e.g. 00100">
+
+    <label for="extraText">Product Name (optional)</label>
+    <input id="extraText" type="text" placeholder="e.g. Product name or note">
+
+    <div>
+      <button id="generate">Generate</button>
+      <button id="copyPayload">Copy</button>
+    </div>
+
+    <div id="result">
+      <div id="textOut"></div>
+      <svg id="barcode"></svg>
+      <div id="extraOut"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script>
+    function isDigits(s){ return /^\d+$/.test(s); }
+
+    const origInput = document.getElementById('original');
+    const priceInput = document.getElementById('price');
+    const extraInput = document.getElementById('extraText');
+    const generateBtn = document.getElementById('generate');
+    const copyBtn = document.getElementById('copyPayload');
+    const out = document.getElementById('textOut');
+    const result = document.getElementById('result');
+    const extraOut = document.getElementById('extraOut');
+
+    generateBtn.addEventListener('click', ()=>{
+      const orig = origInput.value.trim();
+      const price = priceInput.value.trim();
+      const extra = extraInput.value.trim();
+
+      if(orig.length !== 13 || !isDigits(orig)){
+        out.innerHTML = '<div class="error">Original barcode must be 13 digits.</div>';
+        result.style.display = "block";
+        return;
+      }
+
+      if(price.length !== 5 || !isDigits(price)){
+        out.innerHTML = '<div class="error">Price must be 5 digits (e.g. 00100 for £1.00).</div>';
+        result.style.display = "block";
+        return;
+      }
+
+      const finalPayload = "822" + orig + "00160" + price;
+
+      out.innerHTML = '<strong>Payload:</strong> <code>' + finalPayload + '</code>';
+
+      try {
+        JsBarcode('#barcode', finalPayload, {
+          format: 'CODE128',
+          displayValue: true,
+          fontSize: 16,
+          height: 80,
+          lineColor: "#000",
+          background: "#fff"
+        });
+      } catch(e){
+        out.innerText = 'Failed to render barcode: ' + e.message;
+      }
+
+      extraOut.textContent = extra !== "" ? extra : "";
+      result.style.display = "block";
+    });
+
+    copyBtn.addEventListener('click', ()=>{
+      const text = out.textContent.replace("Payload:", "").trim();
+      navigator.clipboard.writeText(text).then(()=>{
+        alert("Copied: " + text);
+      });
+    });
+  </script>
+</body>
+</html>

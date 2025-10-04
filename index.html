@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>JG | Unlock</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #0a0a0a;
+      font-family: Arial, sans-serif;
+      color: #fff;
+    }
+    .box {
+      background: #111;
+      padding: 40px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(160,32,240,0.6);
+    }
+    h1 {
+      margin-bottom: 20px;
+      color: #a020f0;
+    }
+    input {
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      width: 200px;
+      margin-bottom: 15px;
+      outline: none;
+      text-align: center;
+      font-size: 16px;
+    }
+    button {
+      background: #a020f0;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #7a1cb8;
+    }
+    .error {
+      color: red;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Enter Key</h1>
+    <input type="password" id="key" placeholder="Key" />
+    <br/>
+    <button id="btnUnlock">Unlock</button>
+    <div id="error" class="error">❌ Wrong key</div>
+  </div>
+
+  <script>
+    const c0d3_Core = "=M.0C.Dx.3U.AA.0e.bR.gQ";
+    const entropySeed = "s3cK";
+
+    function entropySanitize(blob) {
+      return blob.split('.').join('');
+    }
+
+    function base64ToBytes(b64) {
+      const bin = atob(b64);
+      const len = bin.length;
+      const out = new Uint8Array(len);
+      for (let i = 0; i < len; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    }
+
+    function bytesToString(bytes) {
+      let s = "";
+      for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+      return s;
+    }
+
+    function entropyMixer(payloadBlob, seed) {
+      try {
+        const sanitized = entropySanitize(payloadBlob);
+        const reversed = sanitized.split('').reverse().join('');
+        const rawBytes = base64ToBytes(reversed);
+        const seedLen = seed.length;
+        const outBytes = new Uint8Array(rawBytes.length);
+        for (let i = 0; i < rawBytes.length; i++) {
+          outBytes[i] = rawBytes[i] ^ seed.charCodeAt(i % seedLen);
+        }
+        return bytesToString(outBytes);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function quantumResolveAndCheck() {
+      const ui = document.getElementById('key');
+      const err = document.getElementById('error');
+      const attempt = ui.value || '';
+      const reconstructed = entropyMixer(c0d3_Core, entropySeed);
+
+      if (!reconstructed) {
+        err.textContent = "Unexpected error";
+        err.style.display = "block";
+        return false;
+      }
+
+      if (attempt === reconstructed) {
+        try { sessionStorage.setItem('authenticated', 'true'); } catch(e) {}
+        setTimeout(() => { window.location.href = "home.html"; }, 100);
+        return true;
+      } else {
+        err.textContent = "❌ Wrong key";
+        err.style.display = "block";
+        return false;
+      }
+    }
+
+    (function boot() {
+      const btn = document.getElementById('btnUnlock');
+      const pw = document.getElementById('key');
+      btn.addEventListener('click', quantumResolveAndCheck);
+      pw.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') quantumResolveAndCheck();
+      });
+      const __q = { payload: c0d3_Core, seed: entropySeed, check: quantumResolveAndCheck };
+    })();
+  </script>
+</body>
+</html>
