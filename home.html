@@ -1,140 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>JG | Unlock</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JG | Home</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
       margin: 0;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: #0a0a0a;
       font-family: Arial, sans-serif;
+      color: #eaeaea;
+      background: url("https://i.postimg.cc/mrW6BPVG/lil-loaded-crip.gif") no-repeat center center fixed;
+      background-size: cover;
+      position: relative;
+    }
+
+    /* Overlay so text is still visible */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 0;
+    }
+
+    /* ===== Header ===== */
+    header {
+      position: sticky;
+      top: 0;
+      background: rgba(17,17,17,0.9);
+      padding: 15px 30px;
+      color: #a020f0;
+      font-size: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 0 12px rgba(0,0,0,0.6);
+      z-index: 2;
+    }
+    nav a {
       color: #fff;
+      text-decoration: none;
+      margin-left: 25px;
+      font-size: 16px;
+      transition: color 0.3s;
     }
-    .box {
-      background: #111;
-      padding: 40px;
-      border-radius: 12px;
-      text-align: center;
-      box-shadow: 0 0 20px rgba(160,32,240,0.6);
-    }
-    h1 {
-      margin-bottom: 20px;
+    nav a:hover {
       color: #a020f0;
     }
-    input {
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
-      width: 200px;
-      margin-bottom: 15px;
-      outline: none;
+
+    /* ===== Main ===== */
+    main {
+      position: relative;
+      z-index: 1;
+      padding: 60px 20px;
       text-align: center;
-      font-size: 16px;
+      max-width: 1100px;
+      margin: 0 auto;
     }
-    button {
-      background: #a020f0;
+    h1 {
+      margin-bottom: 50px;
+      font-size: 30px;
+      font-weight: bold;
+      color: #a020f0;
+    }
+
+    /* ===== Card Grid ===== */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 30px;
+    }
+    .card {
+      border-radius: 14px;
+      padding: 40px 20px;
       color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: background 0.3s;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      background: rgba(26,26,26,0.9);
     }
-    button:hover {
-      background: #7a1cb8;
+    .card span {
+      font-size: 32px;
+      margin-bottom: 14px;
     }
-    .error {
-      color: red;
-      margin-top: 10px;
-      display: none;
+    .card:hover {
+      transform: translateY(-8px) scale(1.03);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.7);
     }
+
+    /* ===== Brand Colors ===== */
+    .morrisons { border-top: 5px solid #007a33; }
+    .asda { border-top: 5px solid #78BE20; }
+    .mands { border-top: 5px solid #0f6d3e; }
+    .sainsburys { border-top: 5px solid #ec6608; }
+    .tesco { border-top: 5px solid #00539f; }
+    .waitrose { border-top: 5px solid #00a859; }
+    .ph { border-top: 5px solid #A464DE; }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h1>Enter Key</h1>
-    <input type="password" id="key" placeholder="Key" />
-    <br/>
-    <button id="btnUnlock">Unlock</button>
-    <div id="error" class="error">❌ Wrong key</div>
-  </div>
+  <header>
+    <div>Jew Gen</div>
+    <nav>
+      <a href="home.html">Home</a>
+      <a href="https://t.me/yunokv/" target="_blank">Contact</a>
+	  <a href="terms.html">Terms</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="grid">
+      <a href="gens/morrisons.html" class="card ph">
+        <span></span>
+        Morrisons
+      </a>
+      <a href="gens/asda.html" class="card ph">
+        <span></span>
+        ASDA
+      </a>
+      <a href="gens/mands.html" class="card ph">
+        <span></span>
+        M&S
+      </a>
+      <a href="gens/sainsburys.html" class="card ph">
+        <span></span>
+        Sainsbury’s
+      </a>
+      <a href="gens/tesco.html" class="card ph">
+        <span></span>
+        Tesco
+      </a>
+      <a href="gens/waitrose.html" class="card ph">
+        <span></span>
+        Waitrose
+      </a>
+      <a href="gens/scg.html" class="card ph">
+        <span></span>
+        Amazon SC Gen
+      </a>
+      <a href="gens/opsec.html" class="card ph">
+        <span></span>
+        Fake Info Gen
+      </a>
+    </div>
+  </main>
 
   <script>
-    const c0d3_Core = "=M.0C.Dx.3U.AA.0e.bR.gQ";
-    const entropySeed = "s3cK";
-
-    function entropySanitize(blob) {
-      return blob.split('.').join('');
+    if (!sessionStorage.getItem("authenticated")) {
+      window.location.replace("index.html");
     }
-
-    function base64ToBytes(b64) {
-      const bin = atob(b64);
-      const len = bin.length;
-      const out = new Uint8Array(len);
-      for (let i = 0; i < len; i++) out[i] = bin.charCodeAt(i);
-      return out;
-    }
-
-    function bytesToString(bytes) {
-      let s = "";
-      for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
-      return s;
-    }
-
-    function entropyMixer(payloadBlob, seed) {
-      try {
-        const sanitized = entropySanitize(payloadBlob);
-        const reversed = sanitized.split('').reverse().join('');
-        const rawBytes = base64ToBytes(reversed);
-        const seedLen = seed.length;
-        const outBytes = new Uint8Array(rawBytes.length);
-        for (let i = 0; i < rawBytes.length; i++) {
-          outBytes[i] = rawBytes[i] ^ seed.charCodeAt(i % seedLen);
-        }
-        return bytesToString(outBytes);
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function quantumResolveAndCheck() {
-      const ui = document.getElementById('key');
-      const err = document.getElementById('error');
-      const attempt = ui.value || '';
-      const reconstructed = entropyMixer(c0d3_Core, entropySeed);
-
-      if (!reconstructed) {
-        err.textContent = "Unexpected error";
-        err.style.display = "block";
-        return false;
-      }
-
-      if (attempt === reconstructed) {
-        try { sessionStorage.setItem('authenticated', 'true'); } catch(e) {}
-        setTimeout(() => { window.location.href = "home.html"; }, 100);
-        return true;
-      } else {
-        err.textContent = "❌ Wrong key";
-        err.style.display = "block";
-        return false;
-      }
-    }
-
-    (function boot() {
-      const btn = document.getElementById('btnUnlock');
-      const pw = document.getElementById('key');
-      btn.addEventListener('click', quantumResolveAndCheck);
-      pw.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') quantumResolveAndCheck();
-      });
-      const __q = { payload: c0d3_Core, seed: entropySeed, check: quantumResolveAndCheck };
-    })();
   </script>
 </body>
 </html>
