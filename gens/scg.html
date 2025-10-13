@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Amazon Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .card {
+      background: #1c1c1c;
+      padding: 2rem;
+      border-radius: 12px;
+      width: 420px;
+      text-align: center;
+      box-shadow: 0 0 15px rgba(255,235,59,0.6);
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 10px;
+      color: #FFEB3B;
+    }
+
+    p {
+      margin-bottom: 20px;
+      color: #aaa;
+      font-size: 0.9rem;
+    }
+
+    select, input[type=number] {
+      width: 90%;
+      padding: 10px;
+      margin: 8px 0;
+      font-size: 15px;
+      border: none;
+      border-radius: 8px;
+      outline: none;
+      background: #222;
+      color: #fff;
+    }
+
+    select:focus, input[type=number]:focus {
+      border: 2px solid #FFEB3B;
+    }
+
+    button {
+      margin: 10px 6px;
+      padding: 10px 16px;
+      font-size: 15px;
+      border-radius: 8px;
+      border: none;
+      background: #FFEB3B;
+      font-weight: bold;
+      color: #111;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      background: #FFF176;
+      transform: translateY(-2px);
+    }
+
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px dashed #555;
+      border-radius: 10px;
+      background: #222;
+      color: #fff;
+      display: none;
+      text-align: left;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .error {
+      color: #f44336;
+      font-weight: bold;
+    }
+
+    .valid {
+      color: #FFEB3B;
+    }
+
+    .invalid {
+      color: #f44336;
+    }
+
+    #progress {
+      display: none;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Amazon Generator</h1>
+
+    <label for="cardType">Card Type</label>
+    <select id="cardType">
+      <option value="1">$1000 AMZ SC</option>
+      <option value="2">$2000 AMZ SC</option>
+      <option value="3">$5000 AMZ SC</option>
+    </select>
+
+    <label for="howMany">How many cards do you want to generate (max 500):</label>
+    <input id="howMany" type="number" min="1" max="500" value="1">
+
+    <div>
+      <button id="generate">Generate</button>
+      <button id="copyPayload" disabled>Copy All</button>
+      <button id="downloadValid" disabled>Download Valid as TXT</button>
+    </div>
+
+    <div id="progress">Generating...</div>
+
+    <div id="result">
+      <div id="textOut"></div>
+      <div id="extraOut">If the cards are Invalid, simply run the gen again!</div>
+    </div>
+  </div>
+
+  <script>
+    class Validator {
+      constructor() {
+        this.cardNumber = null;
+        this.Brand = null;
+      }
+
+      findBrand() {
+        if (this.cardNumber.startsWith('34') || this.cardNumber.startsWith('37')) {
+          this.Brand = 'American Express';
+        } else if (['300', '301', '302', '303', '304', '305'].includes(this.cardNumber.substring(0, 3))) {
+          this.Brand = 'Diners Club - Carte Blanche';
+        } else if (this.cardNumber.startsWith('36')) {
+          this.Brand = 'Diners Club - International';
+        } else if (this.cardNumber.startsWith('54')) {
+          this.Brand = 'Diners Club - USA & Canada';
+        } else if (this.cardNumber.startsWith('6011') || ['644', '645', '646', '647', '648', '649'].includes(this.cardNumber.substring(0, 3)) || this.cardNumber.startsWith('65') || this.cardNumber.substring(0, 6).match(/62212[6-9]|6229[0-2]/)) {
+          this.Brand = 'Discover';
+        } else if (['637', '638', '639'].includes(this.cardNumber.substring(0, 3))) {
+          this.Brand = 'InstaPayment';
+        } else if (this.cardNumber.substring(0, 4).match(/352[8-9]|35[3-8][0-9]/)) {
+          this.Brand = 'JCB';
+        } else if (['5018', '5020', '5038', '5893', '6304', '6759', '6761', '6762', '6763'].includes(this.cardNumber.substring(0, 4))) {
+          this.Brand = 'Maestro';
+        } else if (['51', '52', '53', '54', '55'].includes(this.cardNumber.substring(0, 2)) || this.cardNumber.substring(0, 6).match(/2221[0-9][0-9]|222[2-7][0-9][0-9]/)) {
+          this.Brand = 'MasterCard';
+        } else if (['4026', '4508', '4844', '4913', '4917'].includes(this.cardNumber.substring(0, 4)) || this.cardNumber.startsWith('417500')) {
+          this.Brand = 'VISA Electron';
+        } else if (this.cardNumber.startsWith('4')) {
+          this.Brand = 'VISA';
+        } else {
+          this.Brand = 'Unknown Brand';
+        }
+      }
+
+      validate(number) {
+        if (number === null || typeof number === 'boolean' || typeof number === 'number' && !Number.isInteger(number)) {
+          return { text: 'Not a valid Credit Card Number', valid: false };
+        }
+        number = number.toString().replace(/\s/g, '');
+        if (!/^\d+$/.test(number) || number.length < 13 || number.length > 19) {
+          return { text: 'Not a valid Credit Card Number', valid: false };
+        }
+        this.cardNumber = number;
+        this.findBrand();
+        const lastDigit = parseInt(number[number.length - 1]);
+        const base = number.slice(0, -1).split('').reverse().map((x, i) => {
+          x = parseInt(x);
+          if (i % 2 !== 0) {
+            return x;
+          } else {
+            x *= 2;
+            return x > 9 ? x - 9 : x;
+          }
+        });
+        const sum = base.reduce((a, b) => a + b, 0);
+        const check = (sum * 9) % 10;
+        if (check === lastDigit) {
+          return { text: `[!] ${this.cardNumber} is a valid Store Card!`, valid: true, number: this.cardNumber };
+        } else {
+          return { text: `[?] ${this.cardNumber} is not a valid Store Card!`, valid: false };
+        }
+      }
+    }
+
+    const cardBins = {
+      1: { bin: '60457811425', extra: 5 },
+      2: { bin: '604578114', extra: 7 },
+      3: { bin: '604578118', extra: 7 }
+    };
+
+    let currentResults = [];
+    const generateBtn = document.getElementById('generate');
+    const copyBtn = document.getElementById('copyPayload');
+    const downloadBtn = document.getElementById('downloadValid');
+    const out = document.getElementById('textOut');
+    const result = document.getElementById('result');
+    const progress = document.getElementById('progress');
+
+    function generateBatch(cardType, howMany, start, batchSize) {
+      const results = [];
+      for (let i = start; i < start + batchSize && i < howMany; i++) {
+        const { bin, extra } = cardBins[cardType];
+        let cc = bin;
+        for (let j = 0; j < extra; j++) {
+          cc += Math.floor(Math.random() * 10);
+        }
+        const validator = new Validator();
+        const res = validator.validate(cc);
+        results.push(res);
+      }
+      return results;
+    }
+
+    async function generateCards() {
+      const cardType = document.getElementById('cardType').value;
+      const howMany = parseInt(document.getElementById('howMany').value);
+      if (isNaN(howMany) || howMany < 1 || howMany > 500) {
+        out.innerHTML = '<div class="error">Number of cards must be between 1 and 500.</div>';
+        result.style.display = "block";
+        currentResults = [];
+        return;
+      }
+      generateBtn.disabled = true;
+      copyBtn.disabled = true;
+      downloadBtn.disabled = true;
+      progress.style.display = 'block';
+      result.style.display = 'none';
+      currentResults = [];
+      const batchSize = 50;
+      let start = 0;
+      while (start < howMany) {
+        const batch = generateBatch(cardType, howMany, start, batchSize);
+        currentResults.push(...batch);
+        start += batchSize;
+        await new Promise(resolve => setTimeout(resolve, 0)); // Yield to UI
+      }
+      progress.style.display = 'none';
+      const displayText = currentResults.map(r => r.valid ? `<div class="valid">${r.text}</div>` : `<div class="invalid">${r.text}</div>`);
+      out.innerHTML = '<strong>Generated Cards:</strong><br>' + displayText.join('<br>');
+      result.style.display = "block";
+      generateBtn.disabled = false;
+      copyBtn.disabled = false;
+      downloadBtn.disabled = false;
+    }
+
+    generateBtn.addEventListener('click', () => generateCards());
+
+    copyBtn.addEventListener('click', ()=>{
+      const text = currentResults.map(r => r.text.replace(/<[^>]*>/g, '')).join('\n');
+      navigator.clipboard.writeText(text).then(()=>{
+        alert("Copied all results");
+      });
+    });
+
+    downloadBtn.addEventListener('click', ()=>{
+      const validCards = currentResults.filter(r => r.valid).map(r => r.number).join('\n');
+      if (validCards) {
+        const blob = new Blob([validCards], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'valid_cards.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        alert("No valid cards to download.");
+      }
+    });
+  </script>
+</body>
+</html>
