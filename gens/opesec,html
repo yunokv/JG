@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fake Identity Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .card {
+      background: #1c1c1c;
+      padding: 2rem;
+      border-radius: 12px;
+      width: 420px;
+      text-align: center;
+      box-shadow: 0 0 15px rgba(155, 87, 255, 0.45);
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 8px;
+      color: #b57fff;
+    }
+
+    p {
+      margin-bottom: 14px;
+      color: #aaa;
+      font-size: 0.9rem;
+    }
+
+    input[type=text], input[type=number], select {
+      width: 90%;
+      padding: 10px;
+      margin: 8px 0;
+      font-size: 15px;
+      border: none;
+      border-radius: 8px;
+      outline: none;
+      background: #222;
+      color: #fff;
+    }
+
+    input:focus, select:focus {
+      border: 2px solid #b57fff;
+    }
+
+    button {
+      margin: 10px 6px;
+      padding: 10px 16px;
+      font-size: 15px;
+      border-radius: 8px;
+      border: none;
+      background: #b57fff;
+      font-weight: bold;
+      color: #111;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    button:hover { transform: translateY(-2px); }
+
+    #result {
+      margin-top: 18px;
+      padding: 12px;
+      border: 1px dashed #444;
+      border-radius: 10px;
+      background: #222;
+      color: #fff;
+      display: none;
+      text-align: left;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      max-height: 360px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .small { font-size: 12px; color: #bbb; margin-top: 8px; }
+    .muted { color: #999; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Fake Identity Generator</h1>
+    <p>Generates synthetic demo profiles. ALL DATA IS TEST ONLY.</p>
+
+    <label class="muted">Name style</label>
+    <select id="nameStyle">
+      <option value="random">Random</option>
+      <option value="male">Male</option>
+      <option value="female">Female</option>
+      <option value="neutral">Neutral</option>
+    </select>
+
+    <label class="muted">Count (1–5)</label>
+    <input id="count" type="number" min="1" max="5" value="1">
+
+    <label class="muted">Optional username prefix (affects yopmail)</label>
+    <input id="prefix" type="text" placeholder="e.g. neonbyte">
+
+    <div>
+      <button id="generate">Generate</button>
+      <button id="copyBtn" disabled>Copy</button>
+      <button id="downloadBtn" disabled>Download JSON</button>
+    </div>
+
+    <div id="result"></div>
+    <div class="small">Phones use 555 fiction block. SSNs start with 000 and are labeled "TEST ONLY". IPs use RFC test-net ranges.</div>
+  </div>
+
+<script>
+(() => {
+  // datasets
+  const FIRST_M = ["Liam","Noah","Oliver","Elijah","James","William","Benjamin"];
+  const FIRST_F = ["Olivia","Emma","Ava","Sophia","Isabella","Charlotte","Mia"];
+  const FIRST_N = ["Taylor","Alex","Jordan","Casey","Riley","Parker"];
+  const LASTS = ["Smith","Johnson","Brown","Williams","Jones","Garcia","Miller"];
+
+  const JOBS = ["Software Engineer","Product Manager","Designer","Support Rep","Sysadmin","Data Analyst","Retail Manager"];
+  const COMPANIES = ["NeonForge","BlueWave Solutions","Apex Retail","Nimbus Logistics","Cloudline Tech","PaperTrail Inc"];
+
+  const STREETS = ["Maple St","Oak Ave","Cedar Ln","Pine Rd","Elm St","Birch Way"];
+  const CITIES = ["Riverside","Centerville","Greenville","Fairview","Franklin"];
+  const STATES = ["CA","NY","TX","FL","IL"];
+
+  const ALIAS_WORDS = ["void","neon","byte","flux","crypt","hex","nova","ion","vortex","glitch","phantom","shade","pulse"];
+
+  const TEST_NET = ["192.0.2.","198.51.100.","203.0.113."];
+
+  // helpers
+  const rand = arr => arr[Math.floor(Math.random()*arr.length)];
+  const randInt = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+  const pad = (n,len=2) => String(n).padStart(len,'0');
+  const sanitize = s => String(s).toLowerCase().replace(/[^a-z0-9._-]/g,'');
+
+  function genName(style){
+    let f;
+    if(style === "male") f = rand(FIRST_M);
+    else if(style === "female") f = rand(FIRST_F);
+    else if(style === "neutral") f = rand(FIRST_N);
+    else f = rand([...FIRST_M,...FIRST_F,...FIRST_N]);
+    const l = rand(LASTS);
+    return {first: f, last: l, full: `${f} ${l}`};
+  }
+
+  function genDOBandAge(){
+    const age = randInt(18,65);
+    const year = (new Date()).getFullYear() - age;
+    const month = pad(randInt(1,12));
+    const day = pad(randInt(1,28));
+    return {birthdate: `${year}-${month}-${day}`, age};
+  }
+
+  function genPhone(){ return `(555) 01${pad(randInt(0,99))}-${pad(randInt(1000,9999),4)}`; }
+  function genSSN(){
+  return `${randInt(100, 999)}-${pad(randInt(10, 99))}-${pad(randInt(1000, 9999), 4)} (TEST ONLY)`;}
+  function genAddress(){ return `${randInt(100,9999)} ${rand(STREETS)}, ${rand(CITIES)}, ${rand(STATES)} ${randInt(10000,99999)}`; }
+  function genTenure(age){
+    const max = Math.max(0, Math.min(age-18, 25));
+    const years = randInt(0, max);
+    const months = years < max ? randInt(0,11) : 0;
+    return `${years} years, ${months} months`;
+  }
+  function genCredit(){
+    const score = randInt(300,850);
+    const statuses = ["No late payments","1x 30-day late","Collections reported (past)","Thin file","Good standing"];
+    return `${score} - ${rand(statuses)}`;
+  }
+  function genTestIP(){ return rand(TEST_NET) + randInt(1,254); }
+
+  function genUsernames(prefix = '', count = 4){
+    const set = new Set();
+    for(let i=0;i<count;i++){
+      const parts = [];
+      // sometimes include a human-like alias or pure alias words
+      if(Math.random() < 0.4){
+        // more human alias
+        parts.push(rand(["shadow","night","void","neon","byte","flux","core","spark"]));
+      } else {
+        parts.push(rand(ALIAS_WORDS));
+      }
+      if(Math.random() < 0.5) parts.push(rand(ALIAS_WORDS));
+      let name = parts.join(Math.random()<0.5 ? "" : "_");
+      if(Math.random() < 0.45) name += randInt(2,999);
+      if(prefix) name = sanitize(prefix) + "." + name;
+      set.add(name.toLowerCase());
+    }
+    return Array.from(set);
+  }
+
+  function genYop(username){
+    const local = sanitize(username) || 'demo' + randInt(1000,9999);
+    return {email: `${local}@yopmail.com`, url: `https://yopmail.com/en/?${encodeURIComponent(local)}`};
+  }
+
+  // UI
+  const nameStyleEl = document.getElementById('nameStyle');
+  const countEl = document.getElementById('count');
+  const prefixEl = document.getElementById('prefix');
+  const generateBtn = document.getElementById('generate');
+  const copyBtn = document.getElementById('copyBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const resultEl = document.getElementById('result');
+
+  let lastOutput = null;
+
+  generateBtn.addEventListener('click', () => {
+    const style = nameStyleEl.value;
+    const count = Math.max(1, Math.min(5, Number(countEl.value) || 1));
+    const prefix = prefixEl.value.trim();
+    const profiles = [];
+    for(let i=0;i<count;i++){
+      const name = genName(style);
+      const dobAge = genDOBandAge();
+      const usernameList = genUsernames(prefix, 5);
+      const primary = usernameList[0];
+      const yop = genYop(primary);
+      const profile = {
+        full_name: name.full,
+        first_name: name.first,
+        last_name: name.last,
+        job_title: rand(JOBS),
+        workplace: rand(COMPANIES),
+        age: dobAge.age,
+        birthdate: dobAge.birthdate,
+        phone: genPhone(),
+        tenure_at_work: genTenure(dobAge.age),
+        online_usernames: usernameList,
+        primary_username_for_email: primary,
+        yopmail: yop.email,
+        yopmail_url: yop.url,
+        address: genAddress(),
+        ssn_test_only: genSSN(),
+        credit_history_snippet: genCredit(),
+        ip_via_vpn_proxy_test_net: genTestIP(),
+        note: "ALL DATA IS SYNTHETIC / FOR TESTING PURPOSES ONLY"
+      };
+      profiles.push(profile);
+    }
+    lastOutput = (profiles.length === 1) ? profiles[0] : profiles;
+    resultEl.textContent = JSON.stringify(lastOutput, null, 2);
+    resultEl.style.display = 'block';
+    copyBtn.disabled = false;
+    downloadBtn.disabled = false;
+  });
+
+  copyBtn.addEventListener('click', () => {
+    if(!lastOutput) return alert('Generate first');
+    navigator.clipboard.writeText(JSON.stringify(lastOutput, null, 2)).then(()=> {
+      copyBtn.textContent = 'Copied';
+      setTimeout(()=> copyBtn.textContent = 'Copy', 900);
+    }).catch(()=> alert('Copy failed'));
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    if(!lastOutput) return alert('Generate first');
+    const data = JSON.stringify(lastOutput, null, 2);
+    const blob = new Blob([data], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `fake_profiles_${Date.now()}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+})();
+</script>
+</body>
+</html>
