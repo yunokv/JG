@@ -36,6 +36,18 @@
       text-align: center;
       font-size: 16px;
     }
+    .toggle {
+      margin-left: 10px;
+      background: none;
+      border: none;
+      color: #a020f0;
+      cursor: pointer;
+      font-size: 14px;
+      transition: color 0.3s;
+    }
+    .toggle:hover {
+      color: #fff;
+    }
     button {
       background: #a020f0;
       color: #fff;
@@ -59,63 +71,25 @@
 <body>
   <div class="box">
     <h1>Enter Key</h1>
-    <input type="password" id="key" placeholder="Key" />
+    <div>
+      <input type="password" id="key" placeholder="Key" />
+      <button class="toggle" id="toggleVisibility">Show</button>
+    </div>
     <br/>
     <button id="btnUnlock">Unlock</button>
     <div id="error" class="error">❌ Wrong key</div>
   </div>
 
   <script>
-    const c0d3_Core = "=M.0C.Ap.XU.Ds.ke.Wd.AR";
-    const entropySeed = "s3cK";
-
-    function entropySanitize(blob) {
-      return blob.split('.').join('');
-    }
-
-    function base64ToBytes(b64) {
-      const bin = atob(b64);
-      const len = bin.length;
-      const out = new Uint8Array(len);
-      for (let i = 0; i < len; i++) out[i] = bin.charCodeAt(i);
-      return out;
-    }
-
-    function bytesToString(bytes) {
-      let s = "";
-      for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
-      return s;
-    }
-
-    function entropyMixer(payloadBlob, seed) {
-      try {
-        const sanitized = entropySanitize(payloadBlob);
-        const reversed = sanitized.split('').reverse().join('');
-        const rawBytes = base64ToBytes(reversed);
-        const seedLen = seed.length;
-        const outBytes = new Uint8Array(rawBytes.length);
-        for (let i = 0; i < rawBytes.length; i++) {
-          outBytes[i] = rawBytes[i] ^ seed.charCodeAt(i % seedLen);
-        }
-        return bytesToString(outBytes);
-      } catch (e) {
-        return null;
-      }
-    }
+    // new password
+    const PASSWORD = "5550686519485651";
 
     function quantumResolveAndCheck() {
       const ui = document.getElementById('key');
       const err = document.getElementById('error');
-      const attempt = ui.value || '';
-      const reconstructed = entropyMixer(c0d3_Core, entropySeed);
+      const attempt = ui.value.trim();
 
-      if (!reconstructed) {
-        err.textContent = "Unexpected error";
-        err.style.display = "block";
-        return false;
-      }
-
-      if (attempt === reconstructed) {
+      if (attempt === PASSWORD) {
         try { sessionStorage.setItem('authenticated', 'true'); } catch(e) {}
         setTimeout(() => { window.location.href = "home.html"; }, 100);
         return true;
@@ -126,14 +100,27 @@
       }
     }
 
+    function togglePassword() {
+      const input = document.getElementById('key');
+      const btn = document.getElementById('toggleVisibility');
+      if (input.type === "password") {
+        input.type = "text";
+        btn.textContent = "Hide";
+      } else {
+        input.type = "password";
+        btn.textContent = "Show";
+      }
+    }
+
     (function boot() {
       const btn = document.getElementById('btnUnlock');
       const pw = document.getElementById('key');
+      const toggleBtn = document.getElementById('toggleVisibility');
       btn.addEventListener('click', quantumResolveAndCheck);
       pw.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') quantumResolveAndCheck();
       });
-      const __q = { payload: c0d3_Core, seed: entropySeed, check: quantumResolveAndCheck };
+      toggleBtn.addEventListener('click', togglePassword);
     })();
   </script>
 </body>
