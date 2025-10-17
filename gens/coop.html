@@ -5,52 +5,62 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>COOP Barcode Generator</title>
 <style>
-  body {font-family: Arial, sans-serif;background: #111;color: #fff;display: flex;justify-content: center;align-items: center;height: 100vh;margin: 0;}
-  .card {background: #1c1c1c;padding: 2rem;border-radius: 12px;width: 420px;text-align: center;box-shadow: 0 0 15px rgba(255,255,255,0.06);}
-  h1 {font-size: 1.5rem;margin-bottom: 14px;color: #2196f3;}
-  input[type=text], input[type=number] {width: 100%;padding: 10px;margin: 6px 0;font-size: 15px;border: none;border-radius: 8px;outline: none;background: #222;color: #fff;}
-  input[type=text]:focus, input[type=number]:focus {border: 2px solid #2196f3;}
-  button {padding: 10px 16px;font-size: 15px;border-radius: 8px;border: none;background: #2196f3;font-weight: bold;color: #081018;cursor: pointer;transition: all 0.15s ease;}
-  button.secondary {background:#444;color:#fff}
-  button:hover {transform: translateY(-2px)}
-  .row {display:flex;gap:8px;justify-content:center;margin-top:12px}
-  #result {margin-top:16px;display:none}
-  svg {background:#fff;border-radius:6px;display:block;margin:auto}
-  .error {color:#f44336;font-weight:bold;margin-top:10px}
+  :root{--bg:#111;--card:#1c1c1c;--accent:#2196f3}
+  html,body{height:100%}
+  body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#fff;display:flex;align-items:center;justify-content:center;margin:0;padding:20px}
+  .card{width:420px;background:var(--card);padding:20px;border-radius:10px;text-align:center;box-shadow:0 0 16px rgba(0,0,0,0.6)}
+  h1{margin:0 0 12px;color:var(--accent);font-size:1.3rem}
+  input{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:none;background:#222;color:#fff;font-size:15px;outline:none}
+  input:focus{box-shadow:0 0 0 3px rgba(33,150,243,0.08)}
+  .row{display:flex;gap:8px;justify-content:center;margin-top:12px}
+  button{padding:10px 12px;border-radius:8px;border:none;background:var(--accent);color:#071018;font-weight:700;cursor:pointer}
+  button.alt{background:#444;color:#fff}
+  button:active{transform:translateY(1px)}
+  #result{margin-top:16px;display:none}
+  canvas{display:block;margin:10px auto;border-radius:6px;background:#fff}
+  .error{color:#f44336;margin-top:8px;font-weight:700}
+  small{color:#aaa;display:block;margin-top:6px}
 </style>
 </head>
 <body>
   <div class="card">
     <h1>COOP Barcode Generator</h1>
-    <input id="barcode" type="text" inputmode="numeric" placeholder="Barcode digits (EAN-13)">
-    <input id="price" type="number" min="1" max="99" placeholder="Price (pence)">
-    <input id="name" type="text" placeholder="Product name (optional)">
+
+    <input id="barcodeIn" inputmode="numeric" placeholder="Barcode digits (e.g. 501234567890)" />
+    <input id="priceIn" type="number" min="1" max="99" placeholder="Price (pence) — optional" />
+
     <div class="row">
-      <button id="generate">Generate</button>
-      <button id="download" class="secondary">Download PNG</button>
+      <button id="genBtn">Generate</button>
+      <button id="dlBtn" class="alt">Download PNG</button>
     </div>
+
     <div id="result">
-      <svg id="barcodeSvg" width="340" height="100"></svg>
+      <canvas id="outCanvas" width="360" height="160"></canvas>
     </div>
-    <div id="error" class="error"></div>
+
+    <div id="error" class="error" role="alert"></div>
+    <small>Price optional. Product name not required.</small>
   </div>
 
+  <!-- JsBarcode for SVG generation (we'll rasterize to canvas and then add price text) -->
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   <script>
-    const barcodeInput = document.getElementById('barcode');
-    const priceInput = document.getElementById('price');
-    const nameInput = document.getElementById('name');
-    const generateBtn = document.getElementById('generate');
-    const downloadBtn = document.getElementById('download');
-    const barcodeSvg = document.getElementById('barcodeSvg');
-    const resultBox = document.getElementById('result');
-    const errorBox = document.getElementById('error');
+    // Elements
+    const barcodeIn = document.getElementById('barcodeIn');
+    const priceIn = document.getElementById('priceIn');
+    const genBtn = document.getElementById('genBtn');
+    const dlBtn = document.getElementById('dlBtn');
+    const outCanvas = document.getElementById('outCanvas');
+    const resultDiv = document.getElementById('result');
+    const err = document.getElementById('error');
+    const ctx = outCanvas.getContext('2d');
 
+    // Helpers: EAN-13 check digit
     function calcCheckDigit(base12) {
       let sum = 0;
       for (let i = 0; i < 12; i++) {
         const n = parseInt(base12[i], 10);
-        if (isNaN(n)) return null;
+        if (Number.isNaN(n)) return null;
         sum += (i % 2 === 0) ? n : n * 3;
       }
       const mod = sum % 10;
@@ -68,48 +78,129 @@
       return base12 + String(check);
     }
 
-    generateBtn.addEventListener('click', () => {
-      errorBox.textContent = '';
-      const raw = barcodeInput.value.trim();
-      const price = priceInput.value.trim();
-      const name = nameInput.value.trim();
-      if (!raw) { errorBox.textContent = 'Enter barcode digits'; return; }
+    // Render flow:
+    // 1) create a temporary SVG via JsBarcode with flat:true and displayValue:false
+    // 2) serialize SVG to an image, draw onto canvas with white bg
+    // 3) draw optional price centered below barcode
+    async function renderToCanvas(ean13, pricePence) {
+      // create a temporary svg element
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('width', '340');
+      svg.setAttribute('height', '100');
 
-      const ean13 = normalizeToEAN13(raw);
-      if (!ean13) { errorBox.textContent = 'Invalid digits'; return; }
-
+      // render barcode into svg
       try {
-        JsBarcode('#barcodeSvg', ean13, {
+        JsBarcode(svg, ean13, {
           format: 'ean13',
-          displayValue: false,
+          flat: true,          // flat bars (no extended guard bars)
+          displayValue: false, // we'll handle text in canvas (or skip)
           height: 70,
           margin: 0,
-          lineColor: '#000'
+          width: 2
         });
-      } catch {
-        errorBox.textContent = 'Failed to render barcode';
-        return;
+      } catch (e) {
+        throw new Error('Barcode render failed: ' + e.message);
       }
 
-      resultBox.style.display = 'block';
-    });
-
-    downloadBtn.addEventListener('click', () => {
-      const svg = barcodeSvg;
-      const serializer = new XMLSerializer();
-      const svgStr = serializer.serializeToString(svg);
+      // serialize svg
+      const svgStr = new XMLSerializer().serializeToString(svg);
       const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'coop-barcode.svg';
-      a.click();
+
+      // load image
+      const img = new Image();
+      img.src = url;
+
+      await new Promise((res, rej) => {
+        img.onload = () => res();
+        img.onerror = (ev) => rej(new Error('SVG->Image conversion failed'));
+      });
+
+      // set canvas size to fit barcode + price area
+      const canvasW = 360;
+      // barcode image height + bottom padding for price (if any)
+      const priceArea = (typeof pricePence === 'number' && !Number.isNaN(pricePence)) ? 40 : 10;
+      const canvasH = Math.max(100 + priceArea, 140);
+
+      outCanvas.width = canvasW;
+      outCanvas.height = canvasH;
+
+      // white background
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvasW, canvasH);
+
+      // draw barcode centered horizontally; scale to fit width if needed
+      // compute scale to fit the svg's natural width into desired area
+      const targetBarcodeW = 320; // leave small horizontal margin
+      const scale = targetBarcodeW / img.width;
+      const drawW = img.width * scale;
+      const drawH = img.height * scale;
+      const dx = (canvasW - drawW) / 2;
+      const dy = 10; // top padding
+      ctx.drawImage(img, dx, dy, drawW, drawH);
+
+      // draw price if provided and valid
+      if (typeof pricePence === 'number' && !Number.isNaN(pricePence)) {
+        const priceText = `£${(pricePence / 100).toFixed(2)}`;
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 28px Arial';
+        const textW = ctx.measureText(priceText).width;
+        const tx = (canvasW - textW) / 2;
+        // position near bottom
+        const ty = drawH + dy + 36;
+        ctx.fillText(priceText, tx, ty);
+      }
+
       URL.revokeObjectURL(url);
+    }
+
+    // Generate button
+    genBtn.addEventListener('click', async () => {
+      err.textContent = '';
+      resultDiv.style.display = 'none';
+
+      const raw = barcodeIn.value.trim();
+      const priceRaw = priceIn.value.trim();
+
+      if (!raw) { err.textContent = 'Enter barcode digits'; return; }
+      const ean13 = normalizeToEAN13(raw);
+      if (!ean13) { err.textContent = 'Invalid barcode digits'; return; }
+
+      // price optional; validate only if provided
+      let priceNum = null;
+      if (priceRaw !== '') {
+        const p = parseInt(priceRaw, 10);
+        if (Number.isNaN(p) || p < 1 || p > 99) { err.textContent = 'Price must be 1–99 pence'; return; }
+        priceNum = p;
+      }
+
+      try {
+        await renderToCanvas(ean13, priceNum);
+        resultDiv.style.display = 'block';
+      } catch (e) {
+        console.error(e);
+        err.textContent = 'Render failed';
+      }
     });
 
-    [barcodeInput, priceInput, nameInput].forEach(i => i.addEventListener('keydown', e => {
-      if (e.key === 'Enter') generateBtn.click();
-    }));
+    // Download PNG
+    dlBtn.addEventListener('click', () => {
+      // require generation first
+      if (outCanvas.width === 0 || outCanvas.height === 0) { err.textContent = 'Generate first'; return; }
+      outCanvas.toBlob((blob) => {
+        const a = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = 'coop-barcode.png';
+        a.click();
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    });
+
+    // Enter to generate
+    [barcodeIn, priceIn].forEach(el => {
+      el.addEventListener('keydown', (e) => { if (e.key === 'Enter') genBtn.click(); });
+    });
   </script>
 </body>
 </html>
