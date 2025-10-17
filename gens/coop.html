@@ -92,7 +92,7 @@
     <label>Price (1–99 pence)</label>
     <input id="priceInput" type="number" min="1" max="99" placeholder="e.g. 99">
 
-    <label>Product Name</label>
+    <label>Product Name (optional)</label>
     <input id="productInput" type="text" placeholder="e.g. Milk 2L">
 
     <button id="genBtn">Generate Barcode</button>
@@ -152,9 +152,10 @@
       errorText.textContent = '';
       const raw = barcodeInput.value.trim();
       const price = parseInt(priceInput.value.trim());
-      const name = productInput.value.trim();
-      if (!raw || isNaN(price) || price < 1 || price > 99 || !name) {
-        errorText.textContent = '⚠️ Invalid input. Fill all fields correctly.';
+      const name = productInput.value.trim() || ''; // optional now
+
+      if (!raw || isNaN(price) || price < 1 || price > 99) {
+        errorText.textContent = '⚠️ Invalid barcode or price.';
         return;
       }
 
@@ -174,9 +175,11 @@
       const px = (canvas.width - ctx.measureText(priceText).width) / 2;
       ctx.fillText(priceText, px, 220);
 
-      ctx.font = '20px Arial';
-      const nx = (canvas.width - ctx.measureText(name).width) / 2;
-      ctx.fillText(name, nx, 250);
+      if (name) {
+        ctx.font = '20px Arial';
+        const nx = (canvas.width - ctx.measureText(name).width) / 2;
+        ctx.fillText(name, nx, 250);
+      }
 
       result.style.display = 'block';
       downloadBtn.style.display = 'inline-block';
