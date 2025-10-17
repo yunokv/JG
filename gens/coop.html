@@ -1,197 +1,253 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>COOP Barcode Generator</title>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #111;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    margin: 0;
-  }
-  .card {
-    background: #1c1c1c;
-    padding: 2rem;
-    border-radius: 12px;
-    width: 420px;
-    text-align: center;
-    box-shadow: 0 0 15px rgba(33,150,243,0.5);
-  }
-  h1 {
-    font-size: 1.6rem;
-    margin-bottom: 10px;
-    color: #2196f3;
-  }
-  label {
-    display: block;
-    margin-top: 10px;
-    text-align: left;
-    font-size: 0.9rem;
-    color: #aaa;
-  }
-  input {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    border: none;
-    border-radius: 8px;
-    background: #222;
-    color: #fff;
-    font-size: 15px;
-    outline: none;
-  }
-  input:focus {
-    border: 2px solid #2196f3;
-  }
-  button {
-    margin-top: 15px;
-    padding: 10px 16px;
-    font-size: 15px;
-    border-radius: 8px;
-    border: none;
-    background: #2196f3;
-    font-weight: bold;
-    color: #111;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-  button:hover {
-    background: #64b5f6;
-    transform: translateY(-2px);
-  }
-  #result {
-    margin-top: 20px;
-    padding: 15px;
-    border: 1px dashed #555;
-    border-radius: 10px;
-    background: #222;
-    display: none;
-  }
-  canvas {
-    background: #fff;
-    padding: 8px;
-    border-radius: 6px;
-    margin-top: 12px;
-  }
-  .error { color: #f44336; font-weight: bold; margin-top: 10px; }
+  body {font-family: Arial, sans-serif;background: #111;color: #fff;display: flex;justify-content: center;align-items: center;height: 100vh;margin: 0;}
+  .card {background: #1c1c1c;padding: 2rem;border-radius: 12px;width: 460px;text-align: center;box-shadow: 0 0 15px rgba(255,255,255,0.06);}
+  h1 {font-size: 1.5rem;margin-bottom: 8px;color: #2196f3;}
+  p {margin-bottom: 14px;color: #aaa;font-size: 0.9rem;}
+  label {display:block;text-align:left;font-size:0.85rem;color:#bbb;margin-top:8px}
+  input[type=text], input[type=number] {width: 100%;padding: 10px;margin: 6px 0;font-size: 15px;border: none;border-radius: 8px;outline: none;background: #222;color: #fff;}
+  input[type=text]:focus, input[type=number]:focus {border: 2px solid #2196f3;}
+  .row {display:flex;gap:8px;align-items:center;justify-content:center;margin-top:10px}
+  button {padding: 10px 14px;font-size: 14px;border-radius: 8px;border: none;background: #2196f3;font-weight: 700;color: #081018;cursor: pointer;transition: all 0.14s ease;}
+  button.secondary {background:#444;color:#fff}
+  button:hover {transform: translateY(-2px)}
+  #result {margin-top: 16px;padding: 12px;border: 1px dashed #333;border-radius: 10px;background: #222;color: #fff;display: none;}
+  svg {background: #fff;padding: 8px;border-radius: 6px;margin-top: 10px;display:block;margin-left:auto;margin-right:auto;}
+  .error {color: #f44336;font-weight: 700;margin-top:8px}
+  #meta {margin-top:8px;color:#ddd;font-size:0.95rem}
+  #payload {word-break:break-all;background:#111;padding:6px;border-radius:6px;margin-top:6px}
 </style>
 </head>
 <body>
   <div class="card">
     <h1>COOP Barcode Generator</h1>
+    <p>Enter barcode digits and price (pence). Product name optional.</p>
 
-    <label>Barcode (digits only)</label>
-    <input id="barcodeInput" type="text" placeholder="e.g. 501234567890">
+    <label for="barcode">Barcode digits (will be normalized to EAN-13)</label>
+    <input id="barcode" type="text" inputmode="numeric" placeholder="e.g. 501234567890">
 
-    <label>Price (1–99 pence)</label>
-    <input id="priceInput" type="number" min="1" max="99" placeholder="e.g. 99">
+    <label for="price">Price (pence) 1–99</label>
+    <input id="price" type="number" min="1" max="99" placeholder="e.g. 99">
 
-    <label>Product Name (optional)</label>
-    <input id="productInput" type="text" placeholder="e.g. Milk 2L">
+    <label for="name">Product name (optional)</label>
+    <input id="name" type="text" placeholder="e.g. Wholemilk 2L">
 
-    <button id="genBtn">Generate Barcode</button>
-    <button id="downloadBtn" style="display:none;">Download PNG</button>
+    <div class="row">
+      <button id="generate">Generate</button>
+      <button id="copy" class="secondary">Copy Payload</button>
+      <button id="download" class="secondary">Download PNG</button>
+    </div>
 
     <div id="result">
-      <canvas id="labelCanvas" width="400" height="280"></canvas>
+      <div id="meta">
+        <div><strong>EAN-13:</strong> <span id="eanOut"></span></div>
+        <div id="priceOut"><strong>Price:</strong> <span></span></div>
+        <div id="nameOut"></div>
+      </div>
+      <div id="payload" aria-live="polite"></div>
+      <svg id="barcodeSvg" width="360" height="120"></svg>
     </div>
-    <div id="errorText" class="error"></div>
+
+    <div id="error" class="error" role="alert"></div>
   </div>
 
-  <script src="https://unpkg.com/bwip-js@2.0.10/browser-bwipjs-min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   <script>
-    const barcodeInput = document.getElementById('barcodeInput');
-    const priceInput = document.getElementById('priceInput');
-    const productInput = document.getElementById('productInput');
-    const genBtn = document.getElementById('genBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const result = document.getElementById('result');
-    const errorText = document.getElementById('errorText');
-    const canvas = document.getElementById('labelCanvas');
-    const ctx = canvas.getContext('2d');
+    // Elements
+    const barcodeInput = document.getElementById('barcode');
+    const priceInput = document.getElementById('price');
+    const nameInput = document.getElementById('name');
+    const generateBtn = document.getElementById('generate');
+    const copyBtn = document.getElementById('copy');
+    const downloadBtn = document.getElementById('download');
+    const resultBox = document.getElementById('result');
+    const barcodeSvg = document.getElementById('barcodeSvg');
+    const eanOut = document.getElementById('eanOut');
+    const priceOut = document.querySelector('#priceOut span');
+    const nameOut = document.getElementById('nameOut');
+    const payloadBox = document.getElementById('payload');
+    const errorBox = document.getElementById('error');
 
+    // EAN-13 check digit
     function calcCheckDigit(base12) {
       let sum = 0;
       for (let i = 0; i < 12; i++) {
-        const n = parseInt(base12[i]);
-        sum += i % 2 === 0 ? n : n * 3;
+        const n = parseInt(base12[i], 10);
+        // If non-digit included, return null to indicate invalid input
+        if (Number.isNaN(n)) return null;
+        sum += (i % 2 === 0) ? n : n * 3;
       }
       const mod = sum % 10;
       return mod === 0 ? 0 : 10 - mod;
     }
 
-    function normalizeToEAN13(input) {
-      let cleaned = input.replace(/\D/g, '');
-      if (cleaned.length > 13) cleaned = cleaned.slice(0, 13);
+    function normalizeToEAN13(raw) {
+      // remove non-digits
+      let cleaned = (raw || '').replace(/\D/g, '');
+      if (cleaned.length === 0) return null;
+      // if >13, truncate to last 13 digits (prefer preserving right side)
+      if (cleaned.length > 13) cleaned = cleaned.slice(-13);
+      // if <13, left-pad with zeros to 13
       if (cleaned.length < 13) cleaned = cleaned.padStart(13, '0');
-      const base = cleaned.slice(0, 12);
-      const check = calcCheckDigit(base);
-      return base + check;
+      const base12 = cleaned.slice(0, 12);
+      const check = calcCheckDigit(base12);
+      if (check === null) return null;
+      return base12 + String(check);
     }
 
-    async function renderBarcode(ean13) {
-      const temp = document.createElement('canvas');
-      BwipJS.toCanvas(temp, {
-        bcid: 'ean13',
-        text: ean13,
-        scale: 3,
-        height: 50,
-        includetext: true,
-        textxalign: 'center'
+    function showError(msg) {
+      errorBox.textContent = msg;
+      resultBox.style.display = 'block';
+      payloadBox.textContent = '';
+      barcodeSvg.innerHTML = '';
+    }
+
+    async function svgToPngDownload(svgElement, filename = 'coop-barcode.png') {
+      // Serialize SVG, render to canvas, then download PNG
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svgElement);
+
+      // Create image
+      const img = new Image();
+      // Make sure foreignObject safe; set white background behind barcode for PNG
+      const svgWithBg = svgString.replace('<svg', '<svg style="background:#fff"');
+      const svgBlob = new Blob([svgWithBg], {type: 'image/svg+xml;charset=utf-8'});
+      const url = URL.createObjectURL(svgBlob);
+
+      return new Promise((resolve, reject) => {
+        img.onload = () => {
+          // create canvas sized to svg bounds
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width || svgElement.clientWidth || 360;
+          canvas.height = img.height || svgElement.clientHeight + 60 || 200; // add space for price/name
+          const ctx = canvas.getContext('2d');
+
+          // white background
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // draw svg image
+          ctx.drawImage(img, 0, 0);
+
+          // draw price and name under the barcode (pull current displayed values)
+          ctx.fillStyle = '#000';
+          ctx.font = 'bold 26px Arial';
+          const priceText = priceOut.textContent;
+          const priceW = ctx.measureText(priceText).width;
+          ctx.fillText(priceText, (canvas.width - priceW) / 2, canvas.height - 24);
+
+          const nameText = nameOut.textContent || '';
+          if (nameText) {
+            ctx.font = '18px Arial';
+            const nameW = ctx.measureText(nameText).width;
+            ctx.fillText(nameText, (canvas.width - nameW) / 2, canvas.height - 6);
+          }
+
+          // download
+          canvas.toBlob((blob) => {
+            const a = document.createElement('a');
+            const objUrl = URL.createObjectURL(blob);
+            a.href = objUrl;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(objUrl);
+            URL.revokeObjectURL(url);
+            resolve();
+          }, 'image/png');
+        };
+        img.onerror = (e) => {
+          URL.revokeObjectURL(url);
+          reject(e);
+        };
+        img.src = url;
       });
-      return temp;
     }
 
-    genBtn.onclick = async () => {
-      errorText.textContent = '';
+    generateBtn.addEventListener('click', () => {
+      errorBox.textContent = '';
       const raw = barcodeInput.value.trim();
-      const price = parseInt(priceInput.value.trim());
-      const name = productInput.value.trim() || ''; // optional now
+      const priceRaw = priceInput.value.trim();
+      const name = nameInput.value.trim();
 
-      if (!raw || isNaN(price) || price < 1 || price > 99) {
-        errorText.textContent = '⚠️ Invalid barcode or price.';
+      // Basic validation: barcode digits present and price valid
+      if (!raw) {
+        showError('Barcode digits required.');
+        return;
+      }
+      const ean13 = normalizeToEAN13(raw);
+      if (!ean13) {
+        showError('Barcode must contain digits only.');
         return;
       }
 
-      const ean = normalizeToEAN13(raw);
-      const bcCanvas = await renderBarcode(ean);
-
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-
-      const bx = (canvas.width - bcCanvas.width) / 2;
-      ctx.drawImage(bcCanvas, bx, 40);
-
-      ctx.fillStyle = '#000';
-      ctx.font = 'bold 30px Arial';
-      const priceText = `£${(price/100).toFixed(2)}`;
-      const px = (canvas.width - ctx.measureText(priceText).width) / 2;
-      ctx.fillText(priceText, px, 220);
-
-      if (name) {
-        ctx.font = '20px Arial';
-        const nx = (canvas.width - ctx.measureText(name).width) / 2;
-        ctx.fillText(name, nx, 250);
+      const price = parseInt(priceRaw, 10);
+      if (Number.isNaN(price) || price < 1 || price > 99) {
+        showError('Price must be a number between 1 and 99 (pence).');
+        return;
       }
 
-      result.style.display = 'block';
-      downloadBtn.style.display = 'inline-block';
-    };
+      // Show outputs
+      eanOut.textContent = ean13;
+      priceOut.textContent = `£${(price / 100).toFixed(2)}`;
+      nameOut.textContent = name ? `Product: ${name}` : '';
 
-    downloadBtn.onclick = () => {
-      const url = canvas.toDataURL('image/png');
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'coop-barcode.png';
-      a.click();
-    };
+      // Payload = EAN13 (this mirrors the COOP pattern of using a valid EAN-13 code)
+      const payload = ean13;
+      payloadBox.innerHTML = '<strong>Payload:</strong> <code>' + payload + '</code>';
+
+      // Render barcode with JsBarcode (EAN-13)
+      try {
+        JsBarcode('#barcodeSvg', payload, {
+          format: 'ean13',
+          displayValue: true,
+          fontSize: 14,
+          height: 70,
+          margin: 8,
+          textMargin: 4
+        });
+      } catch (err) {
+        showError('Failed to render barcode: ' + String(err));
+        return;
+      }
+
+      resultBox.style.display = 'block';
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      const txt = eanOut.textContent || '';
+      if (!txt) { showError('Nothing to copy'); return; }
+      try {
+        await navigator.clipboard.writeText(txt);
+        // minimal confirmation
+        copyBtn.textContent = 'Copied';
+        setTimeout(()=> copyBtn.textContent = 'Copy Payload', 900);
+      } catch (e) {
+        showError('Clipboard write failed');
+      }
+    });
+
+    downloadBtn.addEventListener('click', async () => {
+      if (!eanOut.textContent) { showError('Generate first'); return; }
+      try {
+        await svgToPngDownload(barcodeSvg, 'coop-barcode.png');
+        downloadBtn.textContent = 'Downloaded';
+        setTimeout(()=> downloadBtn.textContent = 'Download PNG', 900);
+      } catch (e) {
+        showError('Download failed: ' + String(e));
+      }
+    });
+
+    // allow pressing Enter on inputs to generate
+    [barcodeInput, priceInput, nameInput].forEach(el => {
+      el.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') generateBtn.click();
+      });
+    });
   </script>
 </body>
 </html>
