@@ -39,13 +39,11 @@
     </div>
 
     <div id="error" class="error" role="alert"></div>
-    <small>Price optional. Product name not required.</small>
+    <small>made by kv </small>
   </div>
 
-  <!-- JsBarcode for SVG generation (we'll rasterize to canvas and then add price text) -->
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   <script>
-    // Elements
     const barcodeIn = document.getElementById('barcodeIn');
     const priceIn = document.getElementById('priceIn');
     const genBtn = document.getElementById('genBtn');
@@ -55,7 +53,6 @@
     const err = document.getElementById('error');
     const ctx = outCanvas.getContext('2d');
 
-    // Helpers: EAN-13 check digit
     function calcCheckDigit(base12) {
       let sum = 0;
       for (let i = 0; i < 12; i++) {
@@ -78,22 +75,16 @@
       return base12 + String(check);
     }
 
-    // Render flow:
-    // 1) create a temporary SVG via JsBarcode with flat:true and displayValue:false
-    // 2) serialize SVG to an image, draw onto canvas with white bg
-    // 3) draw optional price centered below barcode
     async function renderToCanvas(ean13, pricePence) {
-      // create a temporary svg element
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('width', '340');
       svg.setAttribute('height', '100');
 
-      // render barcode into svg
       try {
         JsBarcode(svg, ean13, {
           format: 'ean13',
-          flat: true,          // flat bars (no extended guard bars)
-          displayValue: false, // we'll handle text in canvas (or skip)
+          flat: true,          
+          displayValue: false,
           height: 70,
           margin: 0,
           width: 2
@@ -102,12 +93,10 @@
         throw new Error('Barcode render failed: ' + e.message);
       }
 
-      // serialize svg
       const svgStr = new XMLSerializer().serializeToString(svg);
       const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
 
-      // load image
       const img = new Image();
       img.src = url;
 
@@ -115,38 +104,30 @@
         img.onload = () => res();
         img.onerror = (ev) => rej(new Error('SVG->Image conversion failed'));
       });
-
-      // set canvas size to fit barcode + price area
       const canvasW = 360;
-      // barcode image height + bottom padding for price (if any)
       const priceArea = (typeof pricePence === 'number' && !Number.isNaN(pricePence)) ? 40 : 10;
       const canvasH = Math.max(100 + priceArea, 140);
 
       outCanvas.width = canvasW;
       outCanvas.height = canvasH;
 
-      // white background
       ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, canvasW, canvasH);
 
-      // draw barcode centered horizontally; scale to fit width if needed
-      // compute scale to fit the svg's natural width into desired area
-      const targetBarcodeW = 320; // leave small horizontal margin
+      const targetBarcodeW = 320; 
       const scale = targetBarcodeW / img.width;
       const drawW = img.width * scale;
       const drawH = img.height * scale;
       const dx = (canvasW - drawW) / 2;
-      const dy = 10; // top padding
+      const dy = 10; 
       ctx.drawImage(img, dx, dy, drawW, drawH);
 
-      // draw price if provided and valid
       if (typeof pricePence === 'number' && !Number.isNaN(pricePence)) {
         const priceText = `£${(pricePence / 100).toFixed(2)}`;
         ctx.fillStyle = '#000';
         ctx.font = 'bold 28px Arial';
         const textW = ctx.measureText(priceText).width;
         const tx = (canvasW - textW) / 2;
-        // position near bottom
         const ty = drawH + dy + 36;
         ctx.fillText(priceText, tx, ty);
       }
@@ -154,7 +135,6 @@
       URL.revokeObjectURL(url);
     }
 
-    // Generate button
     genBtn.addEventListener('click', async () => {
       err.textContent = '';
       resultDiv.style.display = 'none';
@@ -165,8 +145,7 @@
       if (!raw) { err.textContent = 'Enter barcode digits'; return; }
       const ean13 = normalizeToEAN13(raw);
       if (!ean13) { err.textContent = 'Invalid barcode digits'; return; }
-
-      // price optional; validate only if provided
+d
       let priceNum = null;
       if (priceRaw !== '') {
         const p = parseInt(priceRaw, 10);
@@ -183,9 +162,7 @@
       }
     });
 
-    // Download PNG
     dlBtn.addEventListener('click', () => {
-      // require generation first
       if (outCanvas.width === 0 || outCanvas.height === 0) { err.textContent = 'Generate first'; return; }
       outCanvas.toBlob((blob) => {
         const a = document.createElement('a');
@@ -197,10 +174,10 @@
       }, 'image/png');
     });
 
-    // Enter to generate
     [barcodeIn, priceIn].forEach(el => {
       el.addEventListener('keydown', (e) => { if (e.key === 'Enter') genBtn.click(); });
     });
   </script>
 </body>
 </html>
+
